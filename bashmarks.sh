@@ -24,13 +24,15 @@
 
 # USAGE: 
 # s bookmarkname - saves the curr dir as bookmarkname
-# g bookmarkname - jumps to the that bookmark
+# s aliasname "alias command" - saves the alias command as aliasname
+# g bookmarkname - jumps to the that bookmark directory
 # g b[TAB] - tab completion is available
 # p bookmarkname - prints the bookmark
+# p aliasname - prints the alias command
 # p b[TAB] - tab completion is available
-# d bookmarkname - deletes the bookmark
+# d alias - deletes the bookmark or alias
 # d [TAB] - tab completion is available
-# l - list all bookmarks
+# l - list all bookmarks and aliases
 
 # setup file to store bookmarks
 if [ ! -n "$SDIRS" ]; then
@@ -38,10 +40,10 @@ if [ ! -n "$SDIRS" ]; then
 fi
 touch $SDIRS
 
-# save current directory to bookmarks
+# save an alias or current directory to bookmarks
 function s {
     check_help $1
-    _bookmark_name_valid "$@"
+    _bookmark_name_valid "$1"
     if [ -z "$exit_message" ]; then
         _purge_line "$SDIRS" "export DIR_$1="
         CURDIR=$(echo $PWD| sed "s#^$HOME#\$HOME#g")
@@ -56,6 +58,18 @@ function g {
     cd "$(eval $(echo echo $(echo \$DIR_$1)))"
 }
 
+# Save Alias
+function a {
+    ALIASCMD="${*:2}"
+    _alias_name_valid "$1"
+
+    if [ -z "$exit_message" ]; then
+        _purge_line "$SDIRS" "alias $1="
+        echo "alias $1=$ALIASCMD" >> $SDIRS
+        source $SDIRS;
+    fi
+}
+
 # print bookmark
 function p {
     check_help $1
@@ -66,10 +80,15 @@ function p {
 # delete bookmark
 function d {
     check_help $1
-    _bookmark_name_valid "$@"
+    _bookmark_name_valid "$1"
     if [ -z "$exit_message" ]; then
         _purge_line "$SDIRS" "export DIR_$1="
         unset "DIR_$1"
+    fi
+    
+    if [ -z "$exit_message" ]; then
+        _purge_line "$SDIRS" "alias $1="
+        source $SDIRS
     fi
 }
 
@@ -90,17 +109,21 @@ function check_help {
 function l {
     check_help $1
     source $SDIRS
-        
+    
     # if color output is not working for you, comment out the line below '\033[1;32m' == "red"
     env | sort | awk '/DIR_.+/{split(substr($0,5),parts,"="); printf("\033[1;31m%-20s\033[0m %s\n", parts[1], parts[2]);}'
     
-    # uncomment this line if color output is not working with the line above
+    cat $SDIRS | grep ^alias | sort | awk '/alias.+/{split(substr($0,7),parts,"="); printf("\033[0m%-20s\033[1;31m %s\n", parts[1], parts[2]);}'
+
+    # uncomment these lines if color output is not working with the line above
     # env | grep "^DIR_" | cut -c5- | sort |grep "^.*=" 
+    # cat $SDIRS | grep ^alias | sort | awk '/alias.+/{split(substr($0,7),parts,"="); printf("%-20s %s\n", parts[1], parts[2]);}'
 }
 # list bookmarks without dirname
 function _l {
     source $SDIRS
     env | grep "^DIR_" | cut -c5- | sort | grep "^.*=" | cut -f1 -d "=" 
+    env | grep "^ALIAS_" | cut -c5- | sort | grep "^.*=" | cut -f1 -d "=" 
 }
 
 # validate bookmark name
@@ -111,6 +134,18 @@ function _bookmark_name_valid {
         echo $exit_message
     elif [ "$1" != "$(echo $1 | sed 's/[^A-Za-z0-9_]//g')" ]; then
         exit_message="bookmark name is not valid"
+        echo $exit_message
+    fi
+}
+
+# validate alias name
+function _bookmark_name_valid {
+    exit_message=""
+    if [ -z $1 ]; then
+        exit_message="alias name required"
+        echo $exit_message
+    elif [ "$1" != "$(echo $1 | sed 's/[^A-Za-z0-9_]//g')" ]; then
+        exit_message="alias name is not valid"
         echo $exit_message
     fi
 }
@@ -127,6 +162,26 @@ function _comp {
 # ZSH completion command
 function _compzsh {
     reply=($(_l))
+}
+
+function _update_alias {
+    ALIASNAME=$1;
+    ALIASCMD="${*:2}"
+    alias "$ALIASNAME=\"$ALIASCMD\"";
+    echo alias $ALIASNAME="$ALIASCMD";
+}
+
+function _update_aliases {
+    OIFS="$IFS"
+    IFS=$'\n'
+    ALIASES1=$(cat $SDIRS | grep ALIAS_ | sed s/ALIAS_// | awk '//{split($0,parts,"="); printf("%s %s\n" , parts[1], parts[2])};' )
+    for line in $ALIASES1; do
+        IFS=' '
+        _update_alias $line
+        IFS=$'\n'
+    done
+    IFS="$OIFS"
+
 }
 
 # safe delete line from sdirs

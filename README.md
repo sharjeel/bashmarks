@@ -1,4 +1,4 @@
-### Bashmarks is a shell script that allows you to save and jump to commonly used directories. Now supports tab completion.
+### This is a fork to add support for aliases in Bashmarks. Bashmarks is a shell script that allows you to save and jump to commonly used directories. Now supports tab completion. 
 
 ## Install
 
@@ -9,9 +9,10 @@
 ## Shell Commands
 
     s <bookmark_name> - Saves the current directory as "bookmark_name"
+    a <alias> <cmd>   - Saves alias command
     g <bookmark_name> - Goes (cd) to the directory associated with "bookmark_name"
     p <bookmark_name> - Prints the directory associated with "bookmark_name"
-    d <bookmark_name> - Deletes the bookmark
+    d <name>          - Deletes the bookmark or alias
     l                 - Lists all available bookmarks
     
 ## Example Usage
@@ -23,7 +24,9 @@
     $ l
     $ g web<tab>
     $ g webfolder
+    $ a ll ls -l
+    $ ll 
 
 ## Where Bashmarks are stored
     
-All of your directory bookmarks are saved in a file called ".sdirs" in your HOME directory.
+All of your directory bookmarks and aliases are saved in a file called ".sdirs" in your HOME directory.
