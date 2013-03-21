@@ -139,7 +139,7 @@ function _bookmark_name_valid {
 }
 
 # validate alias name
-function _bookmark_name_valid {
+function _alias_name_valid {
     exit_message=""
     if [ -z $1 ]; then
         exit_message="alias name required"
